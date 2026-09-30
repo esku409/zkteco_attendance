@@ -79,30 +79,55 @@ def get_live_progress(device_name, user=None, run_id=None):
 # ─────────────────────────────────────────────────────────────────────────────
 # Employee lookup — now also matches by biometric device
 # ─────────────────────────────────────────────────────────────────────────────
+#mod
+# def get_employee_by_biometric_id(user_id, company=None, device_name=None):
+#     """
+#     Find ERPNext Employee by biometric attendance ID (attendance_device_id).
+#     Requires BOTH attendance_device_id AND zk_biometric_device to be set
+#     on the Employee — an employee without a mapped biometric device will
+#     not match, preventing accidental checkin pulls for unmapped employees.
+#     """
+#     if not device_name:
+#         return None
 
+#     base_filters = {
+#         "attendance_device_id": str(user_id),
+#         "zk_biometric_device": device_name,
+#         "status": "Active",
+#     }
+#     if company:
+#         base_filters["company"] = company
+
+#     emps = frappe.get_all("Employee", filters=base_filters,
+#                           fields=["name", "employee_name", "company"])
+#     if emps:
+#         return emps[0]
 def get_employee_by_biometric_id(user_id, company=None, device_name=None):
     """
-    Find ERPNext Employee by biometric attendance ID (attendance_device_id).
-    Requires BOTH attendance_device_id AND zk_biometric_device to be set
-    on the Employee — an employee without a mapped biometric device will
-    not match, preventing accidental checkin pulls for unmapped employees.
+    Find ERPNext Employee by biometric attendance ID and biometric device.
+
+    A biometric device may be shared by employees from multiple companies,
+    so Employee.company is NOT used to restrict the lookup.
+
+    The mapped Employee's own company is the authoritative company.
     """
     if not device_name:
         return None
 
-    base_filters = {
-        "attendance_device_id": str(user_id),
-        "zk_biometric_device": device_name,
-        "status": "Active",
-    }
-    if company:
-        base_filters["company"] = company
+    emps = frappe.get_all(
+        "Employee",
+        filters={
+            "attendance_device_id": str(user_id),
+            "zk_biometric_device": device_name,
+            "status": "Active",
+        },
+        fields=["name", "employee_name", "company"],
+    )
 
-    emps = frappe.get_all("Employee", filters=base_filters,
-                          fields=["name", "employee_name", "company"])
     if emps:
         return emps[0]
 
+    return None
     # Retry without company filter (same device required)
     if company:
         emps = frappe.get_all("Employee",
@@ -340,7 +365,7 @@ def get_attendance_date_for_punch(user_id, timestamp, device, emp_cache, shift_c
     """
     if user_id not in emp_cache:
         emp_cache[user_id] = get_employee_by_biometric_id(
-            user_id, company=device.company, device_name=device.name
+            user_id, device_name=device.name
         )
     emp = emp_cache.get(user_id)
     if not emp:

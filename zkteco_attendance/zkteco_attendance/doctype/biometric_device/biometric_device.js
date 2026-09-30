@@ -12,33 +12,57 @@ frappe.ui.form.on("Biometric Device", {
                 frappe.msgprint(__("Please enter a Device IP first."));
                 return;
             }
+
             frm.call({
                 method: "zkteco_attendance.zkteco_attendance.api.endpoints.test_connection",
-                args: { device_name: frm.doc.name },
+                args: {
+                    device_name: frm.doc.name,
+                },
                 freeze: true,
                 freeze_message: __("Connecting to device…"),
                 callback(r) {
                     if (r.message && r.message.success) {
                         const d = r.message;
+
                         frappe.msgprint({
                             title: __("Connection Successful ✓"),
                             indicator: "green",
                             message: `
                                 <table class="table table-bordered" style="margin-top:8px">
-                                    <tr><td><b>${__("Serial Number")}</b></td><td>${d.serial_number || "—"}</td></tr>
-                                    <tr><td><b>${__("Firmware")}</b></td><td>${d.firmware_version || "—"}</td></tr>
-                                    <tr><td><b>${__("Device Time")}</b></td><td>${d.device_time || "—"}</td></tr>
-                                    <tr><td><b>${__("Enrolled Users")}</b></td><td>${d.enrolled_users}</td></tr>
-                                    <tr><td><b>${__("Attendance Logs")}</b></td><td>${d.attendance_logs}</td></tr>
-                                </table>`,
+                                    <tr>
+                                        <td><b>${__("Serial Number")}</b></td>
+                                        <td>${d.serial_number || "—"}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>${__("Firmware")}</b></td>
+                                        <td>${d.firmware_version || "—"}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>${__("Device Time")}</b></td>
+                                        <td>${d.device_time || "—"}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>${__("Enrolled Users")}</b></td>
+                                        <td>${d.enrolled_users}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><b>${__("Attendance Logs")}</b></td>
+                                        <td>${d.attendance_logs}</td>
+                                    </tr>
+                                </table>
+                            `,
                         });
+
                         frm.reload_doc();
                     } else {
                         frappe.msgprint({
                             title: __("Connection Failed"),
                             indicator: "red",
-                            message: (r.message && r.message.error) || __("Unknown error"),
+                            message:
+                                (r.message && r.message.error) ||
+                                __("Unknown error"),
                         });
+
                         frm.reload_doc();
                     }
                 },
@@ -52,7 +76,9 @@ frappe.ui.form.on("Biometric Device", {
 
         // ── View Sync Logs ───────────────────────────────────────────────
         frm.add_custom_button(__("View Sync Logs"), function () {
-            frappe.set_route("List", "Attendance Sync Log", { device: frm.doc.name });
+            frappe.set_route("List", "Attendance Sync Log", {
+                device: frm.doc.name,
+            });
         }, __("Actions"));
 
         // ── Browse Employees On Device (map device users to Employees) ───
@@ -61,7 +87,11 @@ frappe.ui.form.on("Biometric Device", {
         }, __("Actions"));
 
         // ── Status badge ────────────────────────────────────────────────
-        const statusColor = { "Active": "green", "Inactive": "red" };
+        const statusColor = {
+            Active: "green",
+            Inactive: "red",
+        };
+
         frm.page.set_indicator(
             frm.doc.status,
             statusColor[frm.doc.status] || "orange"
@@ -70,13 +100,18 @@ frappe.ui.form.on("Biometric Device", {
         // ── Last sync info ───────────────────────────────────────────────
         if (frm.doc.last_sync_time) {
             frm.dashboard.add_comment(
-                __("Last successful sync: <b>{0}</b>",
-                    [frappe.datetime.str_to_user(frm.doc.last_sync_time)]),
+                __("Last successful sync: <b>{0}</b>", [
+                    frappe.datetime.str_to_user(frm.doc.last_sync_time),
+                ]),
                 "blue",
                 true
             );
         } else {
-            frm.dashboard.add_comment(__("No sync has been performed yet."), "orange", true);
+            frm.dashboard.add_comment(
+                __("No sync has been performed yet."),
+                "orange",
+                true
+            );
         }
     },
 
@@ -85,30 +120,39 @@ frappe.ui.form.on("Biometric Device", {
             frappe.msgprint(__("Please save the Device IP first."));
             return;
         }
+
         if (!frm.doc.enable) {
             frappe.msgprint({
                 title: __("Device Not Enabled"),
                 indicator: "red",
-                message: __("This device is not enabled. Please enable it first."),
+                message: __(
+                    "This device is not enabled. Please enable it first."
+                ),
             });
             return;
         }
 
         frappe.call({
             method: "zkteco_attendance.zkteco_attendance.api.endpoints.get_device_users",
-            args: { device_name: frm.doc.name },
+            args: {
+                device_name: frm.doc.name,
+            },
             freeze: true,
             freeze_message: __("Fetching employees from device…"),
             callback(r) {
                 const res = r.message || {};
+
                 if (!res.success) {
                     frappe.msgprint({
                         title: __("Fetch Failed"),
                         indicator: "red",
-                        message: res.error || __("Could not fetch users from the device."),
+                        message:
+                            res.error ||
+                            __("Could not fetch users from the device."),
                     });
                     return;
                 }
+
                 showEmployeeMappingDialog(frm, res);
             },
         });
@@ -119,14 +163,18 @@ frappe.ui.form.on("Biometric Device", {
             frappe.msgprint({
                 title: __("Device Not Enabled"),
                 indicator: "red",
-                message: __("This device is not enabled. Please enable it first."),
+                message: __(
+                    "This device is not enabled. Please enable it first."
+                ),
             });
             return;
         }
 
         frappe.confirm(
-            __("This will connect to <b>{0}</b> now, pull attendance logs, and create Employee Checkin records. This may take a little while for devices with many logs. Continue?",
-                [frm.doc.device_name]),
+            __(
+                "This will connect to <b>{0}</b> now, pull attendance logs, and create Employee Checkin records. This may take a little while for devices with many logs. Continue?",
+                [frm.doc.device_name]
+            ),
             function () {
                 frm.trigger("_run_pull_checkins");
             }
@@ -136,7 +184,11 @@ frappe.ui.form.on("Biometric Device", {
     _run_pull_checkins(frm) {
         // Unique token for this pull run — echoed back in every progress
         // payload so stale progress from a previous run is never applied.
-        const run_id = "zk_pull_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+        const run_id =
+            "zk_pull_" +
+            Date.now() +
+            "_" +
+            Math.random().toString(36).slice(2, 10);
 
         // ── Build a progress dialog ────────────────────────────────────────
         const dialog = new frappe.ui.Dialog({
@@ -150,52 +202,91 @@ frappe.ui.form.on("Biometric Device", {
             ],
         });
 
-        const $body = dialog.fields_dict.progress_html.$wrapper;
+        const $body =
+            dialog.fields_dict.progress_html.$wrapper;
+
         $body.html(`
             <div class="zkteco-pull-progress">
                 <div class="zkteco-pull-stage text-muted" style="margin-bottom:8px;">
                     ${__("Starting…")}
                 </div>
+
                 <div class="progress" style="height:18px;">
-                    <div class="progress-bar progress-bar-striped active zkteco-pull-bar"
-                         role="progressbar" style="width:5%;">
-                    </div>
+                    <div
+                        class="progress-bar progress-bar-striped active zkteco-pull-bar"
+                        role="progressbar"
+                        style="width:5%;"
+                    ></div>
                 </div>
-                <div class="zkteco-pull-counts" style="margin-top:14px; display:none;">
-                    <table class="table table-bordered table-sm" style="margin-bottom:0;">
+
+                <div
+                    class="zkteco-pull-counts"
+                    style="margin-top:14px; display:none;"
+                >
+                    <table
+                        class="table table-bordered table-sm"
+                        style="margin-bottom:0;"
+                    >
                         <tr>
-                            <td>${__("Total Pulled")}</td><td class="text-right zkteco-cnt-total">0</td>
-                            <td>${__("New")}</td><td class="text-right text-success zkteco-cnt-new">0</td>
+                            <td>${__("Total Pulled")}</td>
+                            <td class="text-right zkteco-cnt-total">0</td>
+                            <td>${__("New")}</td>
+                            <td class="text-right text-success zkteco-cnt-new">
+                                0
+                            </td>
                         </tr>
+
                         <tr>
-                            <td>${__("Duplicates")}</td><td class="text-right zkteco-cnt-dupes">0</td>
-                            <td>${__("Failed")}</td><td class="text-right text-danger zkteco-cnt-failed">0</td>
+                            <td>${__("Duplicates")}</td>
+                            <td class="text-right zkteco-cnt-dupes">0</td>
+                            <td>${__("Failed")}</td>
+                            <td class="text-right text-danger zkteco-cnt-failed">
+                                0
+                            </td>
                         </tr>
+
                         <tr>
-                            <td>${__("Double Punches")}</td><td class="text-right text-muted zkteco-cnt-dp">0</td>
-                            <td>${__("Overtime Punches")}</td><td class="text-right text-warning zkteco-cnt-ot">0</td>
+                            <td>${__("Double Punches")}</td>
+                            <td class="text-right text-muted zkteco-cnt-dp">
+                                0
+                            </td>
+                            <td>${__("Overtime Punches")}</td>
+                            <td class="text-right text-warning zkteco-cnt-ot">
+                                0
+                            </td>
                         </tr>
+
                         <tr>
-                            <td colspan="2">${__("Status")}</td><td colspan="2" class="text-right zkteco-cnt-status">—</td>
+                            <td colspan="2">${__("Status")}</td>
+                            <td colspan="2" class="text-right zkteco-cnt-status">
+                                —
+                            </td>
                         </tr>
                     </table>
                 </div>
-                <div class="zkteco-pull-errors text-danger" style="margin-top:10px; display:none; max-height:150px; overflow:auto; font-size:12px;"></div>
+
+                <div
+                    class="zkteco-pull-errors text-danger"
+                    style="margin-top:10px; display:none; max-height:150px; overflow:auto; font-size:12px;"
+                ></div>
             </div>
         `);
 
         dialog.show();
         dialog.get_close_btn().hide();
 
-        const $stage  = $body.find(".zkteco-pull-stage");
-        const $bar    = $body.find(".zkteco-pull-bar");
+        const $stage = $body.find(".zkteco-pull-stage");
+        const $bar = $body.find(".zkteco-pull-bar");
         const $counts = $body.find(".zkteco-pull-counts");
         const $errors = $body.find(".zkteco-pull-errors");
 
         const setProgress = (pct, text) => {
             pct = Math.max(0, Math.min(100, pct));
             $bar.css("width", pct + "%");
-            if (text) $stage.text(text);
+
+            if (text) {
+                $stage.text(text);
+            }
         };
 
         // ── Render the final result (from the cached job result) ──────────
@@ -204,8 +295,14 @@ frappe.ui.form.on("Biometric Device", {
 
             if (!res || !res.success) {
                 setProgress(100, __("Pull failed."));
-                $stage.removeClass("text-muted").addClass("text-danger");
-                $errors.show().text((res && res.error) || __("Unknown error"));
+                $stage
+                    .removeClass("text-muted")
+                    .addClass("text-danger");
+
+                $errors
+                    .show()
+                    .text((res && res.error) || __("Unknown error"));
+
                 dialog.get_close_btn().show();
                 frm.reload_doc();
                 return;
@@ -213,31 +310,80 @@ frappe.ui.form.on("Biometric Device", {
 
             setProgress(100, __("Pull completed."));
             $counts.show();
-            $body.find(".zkteco-cnt-total").text(res.total_records ?? 0);
-            $body.find(".zkteco-cnt-new").text(res.new_records ?? 0);
-            $body.find(".zkteco-cnt-dupes").text(res.duplicates ?? 0);
-            $body.find(".zkteco-cnt-failed").text(res.failed ?? 0);
-            $body.find(".zkteco-cnt-ot").text(res.overtime_records ?? 0);
-            $body.find(".zkteco-cnt-dp").text(res.double_punches ?? 0);
 
-            const statusColors = { Success: "text-success", Partial: "text-warning", Failed: "text-danger" };
-            $body.find(".zkteco-cnt-status")
-                .removeClass("text-success text-warning text-danger")
+            $body
+                .find(".zkteco-cnt-total")
+                .text(res.total_records ?? 0);
+
+            $body
+                .find(".zkteco-cnt-new")
+                .text(res.new_records ?? 0);
+
+            $body
+                .find(".zkteco-cnt-dupes")
+                .text(res.duplicates ?? 0);
+
+            $body
+                .find(".zkteco-cnt-failed")
+                .text(res.failed ?? 0);
+
+            $body
+                .find(".zkteco-cnt-ot")
+                .text(res.overtime_records ?? 0);
+
+            $body
+                .find(".zkteco-cnt-dp")
+                .text(res.double_punches ?? 0);
+
+            const statusColors = {
+                Success: "text-success",
+                Partial: "text-warning",
+                Failed: "text-danger",
+            };
+
+            $body
+                .find(".zkteco-cnt-status")
+                .removeClass(
+                    "text-success text-warning text-danger"
+                )
                 .addClass(statusColors[res.sync_status] || "")
                 .text(res.sync_status || "—");
 
             if (res.errors && res.errors.length) {
-                $errors.show().html(
-                    "<b>" + __("Issues") + ":</b><br>" +
-                    res.errors.map(e => frappe.utils.escape_html(e)).join("<br>")
-                );
+                $errors
+                    .show()
+                    .html(
+                        "<b>" +
+                        __("Issues") +
+                        ":</b><br>" +
+                        res.errors
+                            .map((e) =>
+                                frappe.utils.escape_html(e)
+                            )
+                            .join("<br>")
+                    );
             }
 
-            frappe.show_alert({
-                message: __("Pulled {0} record(s): {1} new, {2} duplicate(s), {3} failed.",
-                    [res.total_records, res.new_records, res.duplicates, res.failed]),
-                indicator: res.sync_status === "Success" ? "green" : (res.sync_status === "Partial" ? "orange" : "red"),
-            }, 8);
+            frappe.show_alert(
+                {
+                    message: __(
+                        "Pulled {0} record(s): {1} new, {2} duplicate(s), {3} failed.",
+                        [
+                            res.total_records,
+                            res.new_records,
+                            res.duplicates,
+                            res.failed,
+                        ]
+                    ),
+                    indicator:
+                        res.sync_status === "Success"
+                            ? "green"
+                            : res.sync_status === "Partial"
+                                ? "orange"
+                                : "red",
+                },
+                8
+            );
 
             dialog.get_close_btn().show();
             frm.reload_doc();
@@ -245,68 +391,132 @@ frappe.ui.form.on("Biometric Device", {
 
         // ── Subscribe to realtime progress events ─────────────────────────
         const handler = (data) => {
-            if (!data || data.device !== frm.doc.name) return;
+            if (!data || data.device !== frm.doc.name) {
+                return;
+            }
+
             // Ignore progress belonging to a different pull run.
-            if (data.run_id && data.run_id !== run_id) return;
+            if (data.run_id && data.run_id !== run_id) {
+                return;
+            }
 
             switch (data.stage) {
                 case "queued":
-                    setProgress(5, data.message || __("Sync job queued…"));
+                    setProgress(
+                        5,
+                        data.message || __("Sync job queued…")
+                    );
                     break;
+
                 case "connecting":
                     setProgress(5, data.message);
                     break;
+
                 case "fetching":
                     setProgress(10, data.message);
                     break;
+
                 case "fetched":
                     setProgress(15, data.message);
                     break;
+
                 case "processing_raw": {
-                    const pct = data.total ? 15 + (data.current / data.total) * 35 : 15;
+                    const pct = data.total
+                        ? 15 + (data.current / data.total) * 35
+                        : 15;
+
                     setProgress(pct, data.message);
                     break;
                 }
+
                 case "filtered":
                     setProgress(55, data.message);
                     break;
+
                 case "deduped":
                     setProgress(55, data.message);
                     $counts.show();
-                    $body.find(".zkteco-cnt-dp").text(data.double_punches ?? 0);
+
+                    $body
+                        .find(".zkteco-cnt-dp")
+                        .text(data.double_punches ?? 0);
+
                     break;
+
                 case "creating_checkins": {
-                    const pct = data.total ? 55 + (data.current / data.total) * 40 : 55;
+                    const pct = data.total
+                        ? 55 + (data.current / data.total) * 40
+                        : 55;
+
                     setProgress(pct, data.message);
                     $counts.show();
-                    $body.find(".zkteco-cnt-new").text(data.new_records ?? 0);
-                    $body.find(".zkteco-cnt-dupes").text(data.duplicates ?? 0);
-                    $body.find(".zkteco-cnt-failed").text(data.failed ?? 0);
-                    $body.find(".zkteco-cnt-ot").text(data.overtime_records ?? 0);
-                    $body.find(".zkteco-cnt-dp").text(data.double_punches ?? 0);
-                    $body.find(".zkteco-cnt-total").text(data.total ?? 0);
+
+                    $body
+                        .find(".zkteco-cnt-new")
+                        .text(data.new_records ?? 0);
+
+                    $body
+                        .find(".zkteco-cnt-dupes")
+                        .text(data.duplicates ?? 0);
+
+                    $body
+                        .find(".zkteco-cnt-failed")
+                        .text(data.failed ?? 0);
+
+                    $body
+                        .find(".zkteco-cnt-ot")
+                        .text(data.overtime_records ?? 0);
+
+                    $body
+                        .find(".zkteco-cnt-dp")
+                        .text(data.double_punches ?? 0);
+
+                    $body
+                        .find(".zkteco-cnt-total")
+                        .text(data.total ?? 0);
+
                     break;
                 }
+
                 case "done":
-                    setProgress(100, data.message || __("Done."));
+                    setProgress(
+                        100,
+                        data.message || __("Done.")
+                    );
                     break;
+
                 case "error":
                 case "failed":
-                    setProgress(100, data.message || __("Failed."));
-                    $stage.removeClass("text-muted").addClass("text-danger");
+                    setProgress(
+                        100,
+                        data.message || __("Failed.")
+                    );
+
+                    $stage
+                        .removeClass("text-muted")
+                        .addClass("text-danger");
+
                     break;
             }
         };
 
         // ── Subscribe to realtime progress events (fast path) ─────────────
-        // Frappe delivers these over websocket/socket.io. When realtime is
+        // Frappe delivers these over realtime/socket.io. When realtime is
         // unavailable (socket.io not running, proxy blocking websockets,
         // etc.) the events never reach the browser, so we ALSO poll the
         // server-side progress snapshot below as a fallback.
         let realtime_on = false;
+
         try {
-            if (frappe.realtime && typeof frappe.realtime.on === "function") {
-                frappe.realtime.on("zkteco_pull_progress", handler);
+            if (
+                frappe.realtime &&
+                typeof frappe.realtime.on === "function"
+            ) {
+                frappe.realtime.on(
+                    "zkteco_pull_progress",
+                    handler
+                );
+
                 realtime_on = true;
             }
         } catch (e) {
@@ -315,12 +525,14 @@ frappe.ui.form.on("Biometric Device", {
 
         // ── Poll fallback for progress (works without realtime) ──────────
         let poll_timer = null;
+
         const stopPolling = () => {
             if (poll_timer) {
                 clearInterval(poll_timer);
                 poll_timer = null;
             }
         };
+
         const poll = () => {
             // If the dialog was dismissed while the pull is still running,
             // stop polling (the background job keeps running server-side).
@@ -328,71 +540,120 @@ frappe.ui.form.on("Biometric Device", {
                 stopPolling();
                 return;
             }
+
             frappe.call({
-                method: "zkteco_attendance.zkteco_attendance.api.endpoints.get_pull_progress",
-                args: { device_name: frm.doc.name, run_id: run_id },
+                method:
+                    "zkteco_attendance.zkteco_attendance.api.endpoints.get_pull_progress",
+                args: {
+                    device_name: frm.doc.name,
+                    run_id: run_id,
+                },
                 callback(r) {
-                    if (!r || !r.message) return;
+                    if (!r || !r.message) {
+                        return;
+                    }
+
                     handler(r.message);
+
                     // Background job finished — the payload carries the
                     // cached final result; finish the dialog from it.
-                    if (r.message.result && (r.message.stage === "done" || r.message.stage === "failed")) {
+                    if (
+                        r.message.result &&
+                        (
+                            r.message.stage === "done" ||
+                            r.message.stage === "failed"
+                        )
+                    ) {
                         stopPolling();
                         finishPull(r.message.result);
                     }
                 },
             });
         };
+
         poll_timer = setInterval(poll, 1500);
-        poll();  // poll immediately so the first stage shows without waiting
+        poll();
 
         const cleanup = () => {
             stopPolling();
+
             if (realtime_on) {
                 try {
-                    frappe.realtime.off("zkteco_pull_progress", handler);
-                } catch (e) { /* ignore */ }
+                    frappe.realtime.off(
+                        "zkteco_pull_progress",
+                        handler
+                    );
+                } catch (e) {
+                    // ignore
+                }
             }
         };
 
         // ── Queue the pull as a background job ─────────────────────────────
-        // The sync runs in a background worker instead of inside this web
-        // request, so gunicorn / reverse-proxy timeouts can no longer kill
-        // long pulls ("timed out"). Progress and the final result arrive
-        // through the polling loop above (and realtime events when
-        // available); finishPull renders the outcome.
+        // The sync runs in a background worker instead of inside this
+        // web request, so gunicorn / reverse-proxy timeouts can no
+        // longer kill long pulls ("timed out"). Progress and the final
+        // result arrive through the polling loop above (and realtime
+        // events when available); finishPull renders the outcome.
         frappe.call({
-            method: "zkteco_attendance.zkteco_attendance.api.endpoints.start_pull_checkins",
-            args: { device_name: frm.doc.name, run_id: run_id },
+            method:
+                "zkteco_attendance.zkteco_attendance.api.endpoints.start_pull_checkins",
+            args: {
+                device_name: frm.doc.name,
+                run_id: run_id,
+            },
             callback(r) {
                 if (!r.message || !r.message.success) {
                     cleanup();
-                    setProgress(100, __("Could not start the pull."));
-                    $stage.removeClass("text-muted").addClass("text-danger");
+
+                    setProgress(
+                        100,
+                        __("Could not start the pull.")
+                    );
+
+                    $stage
+                        .removeClass("text-muted")
+                        .addClass("text-danger");
+
                     dialog.get_close_btn().show();
                     return;
                 }
+
                 // Queued — the user may dismiss the dialog; the job keeps
                 // running and results also land in the Attendance Sync Log.
                 dialog.get_close_btn().show();
             },
+
             error() {
                 cleanup();
-                setProgress(100, __("Could not start the pull."));
-                $stage.removeClass("text-muted").addClass("text-danger");
+
+                setProgress(
+                    100,
+                    __("Could not start the pull.")
+                );
+
+                $stage
+                    .removeClass("text-muted")
+                    .addClass("text-danger");
+
                 dialog.get_close_btn().show();
             },
         });
     },
 });
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Employee mapping dialog (file scope — not a form event handler)
 // Shows every user enrolled on the device with a checkbox, an Employee
-// Link control and a ZK Shift Type Link control per row; "Map Selected
-// Rows" writes attendance_device_id + zk_biometric_device onto the
-// Employees of the ticked rows only, and moves each employee into the
-// ZK Shift Assignment of the chosen shift type (empty shift = unassign).
+// Link control, a Company display and a ZK Shift Type Link control per row.
+// "Map Selected Rows" writes attendance_device_id + zk_biometric_device
+// onto the Employees of the ticked rows only, and moves each employee
+// into the ZK Shift Assignment of the chosen shift type.
+//
+// Company is derived from the selected Employee. The Biometric Device's
+// Company is only used as a fallback when the Employee has no Company.
+//
 // A search box on top filters the fetched device users by ID or name.
 // ─────────────────────────────────────────────────────────────────────────────
 function showEmployeeMappingDialog(frm, res) {
@@ -402,13 +663,17 @@ function showEmployeeMappingDialog(frm, res) {
         frappe.msgprint({
             title: __("No Users On Device"),
             indicator: "orange",
-            message: __("No users are enrolled on this device. Enroll users on the device first, then browse again."),
+            message: __(
+                "No users are enrolled on this device. Enroll users on the device first, then browse again."
+            ),
         });
         return;
     }
 
     const dialog = new frappe.ui.Dialog({
-        title: __("Employees On {0}", [frm.doc.device_name || frm.doc.name]),
+        title: __("Employees On {0}", [
+            frm.doc.device_name || frm.doc.name,
+        ]),
         size: "extra-large",
         fields: [
             {
@@ -416,233 +681,640 @@ function showEmployeeMappingDialog(frm, res) {
                 fieldname: "mapping_html",
             },
         ],
+
         primary_action_label: __("Map Selected Rows"),
+
         primary_action() {
-            // Only rows with the checkbox ticked are submitted; every other
-            // device user is left untouched on the server (the mapping
-            // endpoint only touches the user_ids it receives).
+            // Only rows with the checkbox ticked are submitted; every
+            // other device user is left untouched on the server.
             const mappings = [];
-            dialog.$wrapper.find(".zk-emp-row").each(function () {
-                const $row = $(this);
-                if (!$row.find(".zk-emp-select").is(":checked")) return;
-                const control = $row.data("zk-link-control");
-                const employee = control ? (control.get_value() || "") : "";
-                const shiftControl = $row.data("zk-shift-control");
-                const shiftType = shiftControl ? (shiftControl.get_value() || "") : "";
-                const mapping = {
-                    user_id: $row.data("user-id"),
-                    employee: employee,
-                };
-                // The key is always sent so the server applies the row's
-                // (possibly empty) shift; rows without an Employee are
-                // skipped for shifts server-side.
-                if (employee) mapping.shift_type = shiftType;
-                mappings.push(mapping);
-            });
+
+            dialog.$wrapper
+                .find(".zk-emp-row")
+                .each(function () {
+                    const $row = $(this);
+
+                    if (
+                        !$row
+                            .find(".zk-emp-select")
+                            .is(":checked")
+                    ) {
+                        return;
+                    }
+
+                    const control =
+                        $row.data("zk-link-control");
+
+                    const employee = control
+                        ? control.get_value() || ""
+                        : "";
+
+                    const shiftControl =
+                        $row.data("zk-shift-control");
+
+                    const shiftType = shiftControl
+                        ? shiftControl.get_value() || ""
+                        : "";
+
+                    const mapping = {
+                        user_id: $row.data("user-id"),
+                        employee: employee,
+                    };
+
+                    // The key is always sent so the server applies the
+                    // row's shift value. Rows without an Employee are
+                    // skipped for shifts server-side.
+                    if (employee) {
+                        mapping.shift_type = shiftType;
+                    }
+
+                    mappings.push(mapping);
+                });
 
             if (!mappings.length) {
                 frappe.msgprint({
                     title: __("No Rows Selected"),
                     indicator: "orange",
-                    message: __("Tick the checkbox of at least one row to map."),
+                    message: __(
+                        "Tick the checkbox of at least one row to map."
+                    ),
                 });
                 return;
             }
 
             frappe.call({
-                method: "zkteco_attendance.zkteco_attendance.api.endpoints.map_device_employees",
+                method:
+                    "zkteco_attendance.zkteco_attendance.api.endpoints.map_device_employees",
+
                 args: {
                     device_name: frm.doc.name,
                     mappings: JSON.stringify(mappings),
                 },
+
                 freeze: true,
-                freeze_message: __("Saving employee mappings…"),
+                freeze_message: __(
+                    "Saving employee mappings…"
+                ),
+
                 callback(r2) {
                     const out = r2.message || {};
+
                     if (out.success) {
                         dialog.hide();
-                        frappe.show_alert({
-                            message: __("{0} employee(s) mapped, {1} unmapped, {2} shift assignment(s) updated.",
-                                [out.mapped, out.unmapped, out.shifts_assigned || 0]),
-                            indicator: "green",
-                        }, 6);
+
+                        frappe.show_alert(
+                            {
+                                message: __(
+                                    "{0} employee(s) mapped, {1} unmapped, {2} shift assignment(s) updated.",
+                                    [
+                                        out.mapped,
+                                        out.unmapped,
+                                        out.shifts_assigned || 0,
+                                    ]
+                                ),
+                                indicator: "green",
+                            },
+                            6
+                        );
                     }
-                    // failures are toasted by frappe.call's default error handler
+
+                    // Failures are toasted by frappe.call's default
+                    // error handler.
                 },
             });
         },
     });
 
-    const $body = dialog.fields_dict.mapping_html.$wrapper;
+    const $body =
+        dialog.fields_dict.mapping_html.$wrapper;
 
-    const rows_html = users.map(u => {
-        const badge = u.employee
-            ? `<span class="label label-success" style="display:inline-block; padding:4px 9px; border-radius:999px; font-size:11px; font-weight:600; line-height:1.2;" title="${frappe.utils.escape_html(u.employee_name || u.employee)}">${__("Mapped")}</span>`
-            : `<span class="label" style="display:inline-block; padding:4px 9px; border-radius:999px; font-size:11px; font-weight:600; line-height:1.2; background:#fef3c7; color:#92400e;" title="${__("Not mapped")}">${__("Not mapped")}</span>`;
-        const emp_label = u.employee
-            ? frappe.utils.escape_html(u.employee_name || u.employee)
-            : "";
-        const emp_label_name = u.employee
-            ? frappe.utils.escape_html(u.fullname || u.first_name)
-            : "";
-        return `
-            <tr class="zk-emp-row" data-user-id="${frappe.utils.escape_html(u.user_id)}">
-                <td class="text-center" style="width:36px;">
-                    <input type="checkbox" class="zk-emp-select" data-user-id="${frappe.utils.escape_html(u.user_id)}" />
-                </td>
-                <td class="text-center" style="width:36px;">${badge}</td>
-                <td style="width:110px;"><b>${frappe.utils.escape_html(u.user_id)}</b></td>
-                <td>${frappe.utils.escape_html(u.name || "—")}</td>
-                
-                <td class="text-muted" style="width:160px;">${emp_label_name}</td>
-                <td style="min-width:240px;">
-                    <div class="zk-emp-link-target"
-                         data-user-id="${frappe.utils.escape_html(u.user_id)}"
-                         data-current="${frappe.utils.escape_html(u.employee || "")}"></div>
-                </td>
-                <td style="min-width:180px;">
-                    <div class="zk-shift-link-target"
-                         data-user-id="${frappe.utils.escape_html(u.user_id)}"
-                         data-current="${frappe.utils.escape_html(u.shift_type || "")}"></div>
-                </td>
-            </tr>`;
-    }).join("");
+    const rows_html = users
+        .map((u) => {
+            const badge = u.employee
+                ? `<span
+                        class="label label-success"
+                        style="display:inline-block; padding:4px 9px; border-radius:999px; font-size:11px; font-weight:600; line-height:1.2;"
+                        title="${frappe.utils.escape_html(
+                    u.employee_name || u.employee
+                )}"
+                   >${__("Mapped")}</span>`
+                : `<span
+                        class="label"
+                        style="display:inline-block; padding:4px 9px; border-radius:999px; font-size:11px; font-weight:600; line-height:1.2; background:#fef3c7; color:#92400e;"
+                        title="${__("Not mapped")}"
+                   >${__("Not mapped")}</span>`;
+
+            const emp_label = u.employee
+                ? frappe.utils.escape_html(
+                    u.employee_name || u.employee
+                )
+                : "";
+
+            const emp_label_name = u.employee
+                ? frappe.utils.escape_html(
+                    u.fullname || u.first_name
+                )
+                : "";
+
+            const company = u.company || "";
+
+            return `
+                <tr
+                    class="zk-emp-row"
+                    data-user-id="${frappe.utils.escape_html(
+                u.user_id
+            )}"
+                >
+                    <td
+                        class="text-center"
+                        style="width:36px;"
+                    >
+                        <input
+                            type="checkbox"
+                            class="zk-emp-select"
+                            data-user-id="${frappe.utils.escape_html(
+                u.user_id
+            )}"
+                        />
+                    </td>
+
+                    <td
+                        class="text-center"
+                        style="width:36px;"
+                    >
+                        ${badge}
+                    </td>
+
+                    <td
+                        style="width:110px;"
+                    >
+                        <b>${frappe.utils.escape_html(
+                u.user_id
+            )}</b>
+                    </td>
+
+                    <td>
+                        ${frappe.utils.escape_html(
+                u.name || "—"
+            )}
+                    </td>
+
+                    <td
+                        class="text-muted"
+                        style="width:160px;"
+                    >
+                        ${emp_label_name}
+                    </td>
+
+                    <td
+                        style="min-width:240px;"
+                    >
+                        <div
+                            class="zk-emp-link-target"
+                            data-user-id="${frappe.utils.escape_html(
+                u.user_id
+            )}"
+                            data-current="${frappe.utils.escape_html(
+                u.employee || ""
+            )}"
+                        ></div>
+                    </td>
+
+                    <td
+                        style="min-width:180px;"
+                    >
+                        <span
+                            class="zk-emp-company"
+                            data-company="${frappe.utils.escape_html(
+                company
+            )}"
+                        >
+                            ${frappe.utils.escape_html(
+                company || "—"
+            )}
+                        </span>
+                    </td>
+
+                    <td
+                        style="min-width:180px;"
+                    >
+                        <div
+                            class="zk-shift-link-target"
+                            data-user-id="${frappe.utils.escape_html(
+                u.user_id
+            )}"
+                            data-current="${frappe.utils.escape_html(
+                u.shift_type || ""
+            )}"
+                        ></div>
+                    </td>
+                </tr>
+            `;
+        })
+        .join("");
 
     $body.html(`
         <div class="zk-emp-mapping">
-            <div class="text-muted" style="margin-bottom:8px;">
-                ${__("{0} user(s) enrolled on this device. Tick the rows to map, optionally use the search box to filter them, then click Map Selected Rows. Setting Shift Type moves the employee into the matching shift assignment; clearing it removes them from their current one.", [users.length])}
+
+            <div
+                class="text-muted"
+                style="margin-bottom:8px;"
+            >
+                ${__(
+        "{0} user(s) enrolled on this device. Tick the rows to map, optionally use the search box to filter them, then click Map Selected Rows. Company is taken automatically from the selected Employee. Setting Shift Type moves the employee into the matching shift assignment; clearing it removes them from their current one.",
+        [users.length]
+    )}
             </div>
-            <div class="zk-emp-search-row" style="margin-bottom:8px;">
-                <input type="text"
-                       class="form-control input-xs zk-emp-search"
-                       placeholder="${__("Search device ID or name…")}"
-                       autocomplete="off" />
+
+            <div
+                class="zk-emp-search-row"
+                style="margin-bottom:8px;"
+            >
+                <input
+                    type="text"
+                    class="form-control input-xs zk-emp-search"
+                    placeholder="${__(
+        "Search device ID or name…"
+    )}"
+                    autocomplete="off"
+                />
             </div>
-            <div style="max-height:420px; overflow:auto;">
-                <table class="table table-bordered table-sm" style="margin-bottom:0;">
+
+            <div
+                style="max-height:420px; overflow:auto;"
+            >
+                <table
+                    class="table table-bordered table-sm"
+                    style="margin-bottom:0;"
+                >
                     <thead>
                         <tr>
-                            <th class="text-center" style="width:36px;">
-                                <input type="checkbox" class="zk-emp-select-all"
-                                       title="${__("Select visible rows")}" />
+
+                            <th
+                                class="text-center"
+                                style="width:36px;"
+                            >
+                                <input
+                                    type="checkbox"
+                                    class="zk-emp-select-all"
+                                    title="${__(
+        "Select visible rows"
+    )}"
+                                />
                             </th>
-                            <th style="width:90px;">${__("Status")}</th>
-                            <th style="width:110px;">${__("Device ID")}</th>
-                            <th>${__("Name On Device")}</th>
-                            
-                            <th style="width:160px;">${__("Current Mapped Employee")}</th>
-                            <th style="min-width:240px;">${__("Employee")}</th>
-                            <th style="min-width:180px;">${__("Shift Type")}</th>
+
+                            <th style="width:90px;">
+                                ${__("Status")}
+                            </th>
+
+                            <th style="width:110px;">
+                                ${__("Device ID")}
+                            </th>
+
+                            <th>
+                                ${__("Name On Device")}
+                            </th>
+
+                            <th style="width:160px;">
+                                ${__(
+        "Current Mapped Employee"
+    )}
+                            </th>
+
+                            <th style="min-width:240px;">
+                                ${__("Employee")}
+                            </th>
+
+                            <th style="min-width:180px;">
+                                ${__("Company")}
+                            </th>
+
+                            <th style="min-width:180px;">
+                                ${__("Shift Type")}
+                            </th>
+
                         </tr>
                     </thead>
-                    <tbody>${rows_html}</tbody>
+
+                    <tbody>
+                        ${rows_html}
+                    </tbody>
                 </table>
             </div>
         </div>
     `);
 
     // ── Search / filter the fetched device users ────────────────────────
-    const $search = $body.find(".zk-emp-search");
+    const $search =
+        $body.find(".zk-emp-search");
+
     $search.on("input", function () {
         applyEmployeeFilter();
     });
 
     function applyEmployeeFilter() {
-        const term = ($search.val() || "").trim().toLowerCase();
+        const term = (
+            $search.val() || ""
+        )
+            .trim()
+            .toLowerCase();
+
         $body.find(".zk-emp-row").each(function () {
             const $row = $(this);
-            const text = ($row.text() || "").toLowerCase();
-            $row.toggle(!term || text.indexOf(term) !== -1);
+            const text = (
+                $row.text() || ""
+            ).toLowerCase();
+
+            $row.toggle(
+                !term || text.indexOf(term) !== -1
+            );
         });
+
         syncSelectAllCheckbox();
     }
 
-    // ── Row / select-all checkboxes (map only the selected rows) ────────
+    // ── Row / select-all checkboxes ─────────────────────────────────────
     function syncSelectAllCheckbox() {
-        const $visible = $body.find(".zk-emp-row").filter(":visible");
-        const $checked = $visible.find(".zk-emp-select:checked");
-        $body.find(".zk-emp-select-all").prop(
-            "checked",
-            $visible.length > 0 && $checked.length === $visible.length
-        );
+        const $visible =
+            $body
+                .find(".zk-emp-row")
+                .filter(":visible");
+
+        const $checked =
+            $visible.find(
+                ".zk-emp-select:checked"
+            );
+
+        $body
+            .find(".zk-emp-select-all")
+            .prop(
+                "checked",
+                $visible.length > 0 &&
+                $checked.length ===
+                $visible.length
+            );
     }
 
-    $body.on("change", ".zk-emp-select", syncSelectAllCheckbox);
+    $body.on(
+        "change",
+        ".zk-emp-select",
+        syncSelectAllCheckbox
+    );
 
-    $body.on("change", ".zk-emp-select-all", function () {
-        const checked = $(this).is(":checked");
-        // Applies to visible rows only, so it respects the active search.
-        $body.find(".zk-emp-row").filter(":visible").each(function () {
-            $(this).find(".zk-emp-select").prop("checked", checked);
-        });
-        syncSelectAllCheckbox();
-    });
+    $body.on(
+        "change",
+        ".zk-emp-select-all",
+        function () {
+            const checked =
+                $(this).is(":checked");
 
-    // ── Mount a real Link control on every row (Employee + Shift Type) ──
+            // Applies to visible rows only, so it respects
+            // the active search.
+            $body
+                .find(".zk-emp-row")
+                .filter(":visible")
+                .each(function () {
+                    $(this)
+                        .find(".zk-emp-select")
+                        .prop(
+                            "checked",
+                            checked
+                        );
+                });
+
+            syncSelectAllCheckbox();
+        }
+    );
+
+    // ── Mount real Link controls ────────────────────────────────────────
     // frappe.ui.form.make_control is the supported way to create standalone
     // controls (same as the filter bar on the zk-daily-checkins page). It
     // wires up parent/render_input/refresh so the Link gets its full
-    // autocomplete/awesomplete UX — hand-constructing ControlLink leaves the
-    // input blank and dead because BaseControl skips its own setup without
-    // a parent passed through the factory.
-    const make_link_control = ($target, options, data_key, row_key, extra_df) => {
-        const fieldname = row_key + "_" + String($target.data("user-id")).replace(/\W/g, "_");
+    // autocomplete/awesomplete UX.
+    const make_link_control = (
+        $target,
+        options,
+        data_key,
+        row_key,
+        extra_df
+    ) => {
+        const fieldname =
+            row_key +
+            "_" +
+            String(
+                $target.data("user-id")
+            ).replace(/\W/g, "_");
 
-        const control = frappe.ui.form.make_control({
-            df: Object.assign(
-                {
-                    fieldtype: "Link",
-                    fieldname: fieldname,
-                    options: options,
-                    label: "",
-                },
-                extra_df || {}
-            ),
-            parent: $target,
-            render_input: true,
-        });
+        const control =
+            frappe.ui.form.make_control({
+                df: Object.assign(
+                    {
+                        fieldtype: "Link",
+                        fieldname: fieldname,
+                        options: options,
+                        label: "",
+                    },
+                    extra_df || {}
+                ),
+
+                parent: $target,
+                render_input: true,
+            });
+
         control.refresh();
-        control.set_value($target.data("current") || "");
 
-        // re-trigger the awesomplete suggestions when the user clicks in
-        control.$input.on("focus", function () {
-            const v = control.get_value() || "";
-            control.$input.val("").trigger("input");
-            control.$input.val(v).trigger("input");
-        });
+        control.set_value(
+            $target.data("current") || ""
+        );
 
-        $target.closest(".zk-emp-row").data(data_key, control);
+        // Re-trigger awesomplete suggestions when the
+        // user clicks into the field.
+        control.$input.on(
+            "focus",
+            function () {
+                const v =
+                    control.get_value() || "";
+
+                control.$input
+                    .val("")
+                    .trigger("input");
+
+                control.$input
+                    .val(v)
+                    .trigger("input");
+            }
+        );
+
+        $target
+            .closest(".zk-emp-row")
+            .data(data_key, control);
+
         return control;
     };
 
+    // ── Build controls ──────────────────────────────────────────────────
     const build_controls = () => {
-        $body.find(".zk-emp-link-target").each(function () {
-            make_link_control($(this), "Employee", "zk-link-control", "zk_emp");
-        });
+        // ── Employee Link + automatic Company ───────────────────────────
+        $body
+            .find(".zk-emp-link-target")
+            .each(function () {
+                const $employeeTarget = $(this);
 
-        // Shift Type links only offer active shift types of the device's
-        // company, so the dialog cannot put employees on another company's
-        // shift (the server applies the same rule).
-        $body.find(".zk-shift-link-target").each(function () {
-            make_link_control(
-                $(this), "ZK Shift Type", "zk-shift-control", "zk_shift",
-                {
-                    get_query() {
-                        return {
-                            filters: {
-                                company: frm.doc.company || "",
+                const control =
+                    make_link_control(
+                        $employeeTarget,
+                        "Employee",
+                        "zk-link-control",
+                        "zk_emp"
+                    );
+
+                const $row =
+                    $employeeTarget.closest(
+                        ".zk-emp-row"
+                    );
+
+                const $company =
+                    $row.find(
+                        ".zk-emp-company"
+                    );
+
+                const updateEmployeeCompany = (
+                    employee
+                ) => {
+                    const employeeName =
+                        employee || "";
+
+                    if (!employeeName) {
+                        $company.text("—");
+                        $company.attr(
+                            "data-company",
+                            ""
+                        );
+
+                        const shiftControl =
+                            $row.data(
+                                "zk-shift-control"
+                            );
+
+                        if (shiftControl) {
+                            shiftControl.set_value("");
+                        }
+
+                        return;
+                    }
+
+                    frappe.db
+                        .get_value(
+                            "Employee",
+                            employeeName,
+                            "company"
+                        )
+                        .then((r) => {
+                            const company =
+                                r.message &&
+                                    r.message.company
+                                    ? r.message
+                                        .company
+                                    : "";
+
+                            $company.text(
+                                company || "—"
+                            );
+
+                            $company.attr(
+                                "data-company",
+                                company
+                            );
+
+                            // If the employee changes, the
+                            // old shift may no longer belong
+                            // to the new employee's company.
+                            const shiftControl =
+                                $row.data(
+                                    "zk-shift-control"
+                                );
+
+                            if (shiftControl) {
+                                shiftControl.set_value(
+                                    ""
+                                );
+                            }
+                        });
+                };
+
+                control.$input.on(
+                    "change",
+                    function () {
+                        updateEmployeeCompany(
+                            control.get_value() || ""
+                        );
+                    }
+                );
+
+                // Populate Company for employees that
+                // were already mapped before the dialog opened.
+                updateEmployeeCompany(
+                    control.get_value() || ""
+                );
+            });
+
+        // ── Shift Type Link ─────────────────────────────────────────────
+        $body
+            .find(".zk-shift-link-target")
+            .each(function () {
+                const $shiftTarget = $(this);
+
+                const $row =
+                    $shiftTarget.closest(
+                        ".zk-emp-row"
+                    );
+
+                make_link_control(
+                    $shiftTarget,
+                    "ZK Shift Type",
+                    "zk-shift-control",
+                    "zk_shift",
+                    {
+                        get_query() {
+                            const employeeCompany =
+                                $row
+                                    .find(
+                                        ".zk-emp-company"
+                                    )
+                                    .attr(
+                                        "data-company"
+                                    ) || "";
+
+                            // Device Company is only the fallback.
+                            const fallbackCompany =
+                                frm.doc.company || "";
+
+                            const company =
+                                employeeCompany ||
+                                fallbackCompany;
+
+                            const filters = {
                                 is_active: 1,
-                            },
-                        };
-                    },
-                }
-            );
-        });
+                            };
+
+                            if (company) {
+                                filters.company =
+                                    company;
+                            }
+
+                            return {
+                                filters,
+                            };
+                        },
+                    }
+                );
+            });
     };
 
-    // Build the controls only once the dialog is visible (the wrapper
-    // must be in the DOM and laid out before Link autocomplete works).
+    // Build the controls only once the dialog is visible.
+    // The wrapper must be in the DOM before Link autocomplete
+    // can work correctly.
     dialog.show();
+
     setTimeout(build_controls, 100);
 }

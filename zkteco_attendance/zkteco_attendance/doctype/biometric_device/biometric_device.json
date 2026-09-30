@@ -67,7 +67,7 @@
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company",
-   "reqd": 1
+   "reqd": 0
   },
   {
    "fieldname": "location",
